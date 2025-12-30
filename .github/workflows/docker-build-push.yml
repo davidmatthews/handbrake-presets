@@ -3,7 +3,10 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - master
+      - "**"
+  schedule:
+    # Runs every day at 00:00 UTC
+    - cron: "0 0 * * *"
 
 concurrency:
   group: ${{ github.ref }}
@@ -35,11 +38,22 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Determine Docker tag
+        id: vars
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "tag=nightly" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF_NAME}" != "master" && "${GITHUB_REF_NAME}" != "main" ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
       # Build and push multi-arch image
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: ${{ vars.DOCKERHUB_REPO }}:latest
+          tags: ${{ vars.DOCKERHUB_REPO }}:${{ steps.vars.outputs.tag }}
           platforms: linux/amd64,linux/arm64
