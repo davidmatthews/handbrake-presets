@@ -44,10 +44,12 @@ WORKDIR /build/HandBrake
 # Build
 RUN ./configure --disable-gtk --launch-jobs=$(nproc) --launch
 
+# Verify build
 RUN ./build/HandBrakeCLI --version
 
 # -------- Runtime stage --------
 FROM ubuntu:24.04
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
@@ -73,18 +75,7 @@ RUN apt-get update && apt-get install -y \
 # Copy HandBrake binary
 COPY --from=builder /build/HandBrake/build/HandBrakeCLI /usr/local/bin/HandBrakeCLI
 
-# Copy bundled libraries built by HandBrake
-#COPY --from=builder /build/HandBrake/build/contrib /usr/local/handbrake-contrib
-
-#RUN ls -l /usr/lib/aarch64-linux-gnu
-#RUN find / -name "libvpx.so*"
-
-# Register HandBrake library paths
-#RUN echo "/usr/local/handbrake-contrib/lib"   >  /etc/ld.so.conf.d/handbrake.conf \
-# && echo "/usr/local/handbrake-contrib/lib64" >> /etc/ld.so.conf.d/handbrake.conf \
-# && ldconfig
-
-#RUN ldd /usr/local/bin/HandBrakeCLI
+# Verify installation
 RUN HandBrakeCLI --version
 
 ENTRYPOINT ["HandBrakeCLI"]
